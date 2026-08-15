@@ -1,11 +1,11 @@
 """
 The decision loop.
 
-The agent is handed tools and the current state, and chooses its
-own next action at every step. There is no fixed sequence. Which
-source to query, whether to seek corroboration, when to commit
-and when to escalate are all decisions it makes from what it has
-observed so far.
+The agent is handed tools and the current state, and then pick its
+own next action at every step. There is no fixed sequence. It 
+decides source to query, whether to seek corroboration, when 
+to commit and when to escalate are all decisions it makes from
+what it has observed so far.
 
 The loop itself enforces only structural rules:
   - it stops after MAX_AGENT_STEPS
