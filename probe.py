@@ -1,10 +1,18 @@
 """
 Probe script.
 
-Calls both price APIs once each and prints the raw JSON so we can
-design the source adapters around real responses instead of guessing.
+Calls both price APIs once each and prints the raw JSON.
 
-This is a throwaway diagnostic. It is deleted before submission.
+This was written before any adapter code, to find out what the
+APIs actually return rather than assuming. It is what turned up
+the two quirks the adapters handle: Alpha Vantage returning
+HTTP 200 with no price when rate limited, and Finnhub returning
+c=0 for symbols it does not recognise.
+
+Kept in the repository as the evidence behind those design
+decisions.
+
+    python probe.py
 """
 
 import os
