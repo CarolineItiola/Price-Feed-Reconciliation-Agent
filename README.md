@@ -50,19 +50,12 @@ it runs on a fresh clone immediately.
 
 ## The four scenarios
 
-**1. A source goes offline mid session.** finnhub answers once,
+**1. A source goes offline mid session.** Finnhub answers once,
 then stops. The agent is asked to verify its candidate price
-before finishing, discovers its primary source has gone, and
-re-plans: it spends its scarce Alpha Vantage query specifically
-because one live source only gets it to PROVISIONAL, and it
-wants CONFIRMED.
+before finishing and then discover its primary source has gone and re-plans. A single live source is only enough for a provisional price, so it spends one of its scarce Alpha Vantage queries to get back to two sources and a confirmed one.
 
 **2. Two fresh sources disagree.** The warehouse snapshot is
-written four percent below market. Both it and finnhub are
-fresh and equally trusted, so recency cannot settle it. The
-agent queries Alpha Vantage as a tiebreaker, finds it agrees
-with finnhub to within 0.103%, marks the warehouse unreliable,
-and commits finnhub's exact price.
+written four percent below market. Both the warehouse and finnhub are fresh and equally trusted, so recency cannot settle the question. The agent queries Alpha Vantage as a tiebreaker and AlphaVantage agrees with Finnhub to within 0.103%. That leaves the warehouse as the outlier, so the agent marks it unrelaible and commits Finnhub's exact price.
 
 **3. Every source is unavailable.** Nothing responds. The
 agent escalates with no price set rather than inventing or
@@ -78,8 +71,7 @@ three-minute demo cannot wait for a live API to break on cue,
 and injection makes every run reproducible: anyone can clone
 this and see the same decision path. The agent receives exactly
 the same response an authentic failure produces and has no way
-to tell the difference. The fire is staged; the evacuation is
-real.
+to tell the difference. The failure is staged but the way the agent handled it is not.
 
 ## How it decides
 
@@ -96,7 +88,7 @@ distinguished because they imply different blame:
 | `MALFORMED` | answered with nothing usable | the source |
 
 This matters because of something found by probing rather than
-by reading documentation: **when Alpha Vantage rate limits you
+by reading documentation: **when Alpha Vantage rate limits you,
 it returns HTTP 200** with an explanatory note and no price. A
 naive adapter checks the status code, sees success, and passes
 garbage into canonical state. Finnhub has its own version,
@@ -127,10 +119,9 @@ looks healthy.
 Every source starts at 0.70. Scores move on what sources
 actually do: corroboration raises them, unavailability and
 staleness lower them, and being outvoted by sources with better
-evidence lowers them further. Below 0.35 a source is treated as
-unreliable.
+evidence lowers them further. Below 0.35, a source is treated as unreliable.
 
-In scenario 2 the warehouse falls from 0.70 to 0.50 within a
+In scenario 2, the warehouse falls from 0.70 to 0.50 within a
 single session, on evidence gathered during that session.
 
 ### The anti-averaging invariant
@@ -140,8 +131,7 @@ The state store will not write a price that no source reported.
 justify it, and raises rather than storing anything it cannot
 trace to a single quote.
 
-This is enforced in code rather than requested in the prompt,
-and it earns its place. In one run the agent justified its
+This is enforced in code rather than requested in the prompt, which turned out to matter. In one run, the agent justified its
 choice partly on the grounds that the price was *"in the middle
 of the three observed prices"* — the averaging instinct
 reappearing as a virtue even under explicit instruction not to
@@ -159,7 +149,7 @@ differs by asset class:
 | AAPL | ~0.005% | 0.1% | US equities are consolidated across venues, so live feeds agree far more tightly. |
 
 The 0.13% is measured, not assumed: it is the observed gap
-between finnhub and Alpha Vantage quoting BTC at the same
+between Finnhub and Alpha Vantage quoting BTC at the same
 moment. A single global tolerance would either miss real
 conflicts in equities or fire constantly on crypto noise.
 
@@ -173,20 +163,21 @@ of mistake as guessing a price.
 python test_agent.py
 
 
-27 tests covering the guarantees the agent cannot violate
-however it reasons: blended prices are refused, prices no
-source reported are refused, a refused write leaves state
-untouched, evidence cannot be cited from a source that was
-never queried, freshness flips correctly with the venue, trust
-moves in the right direction and never goes negative, and every
-decision reaches the audit trail with its reason.
+27 tests covering the guarantees the agent cannot violate, whatever conclusion it reaches:
+- a blended price is refused
+- a price that cannot be traced to a source is refused
+- a refused write leaves state untouched
+- the agent cannot cite a source it never queried
+- freshness flips correctly with the venue
+- trust moves in the right direction and never goes negative
+- every decision reaches the audit trail with its reason
 
-No network, no keys, no fixtures to download.
+It makes no network calls, need no API keys, and has no fixtures to download.
 
 ## What I found while building it
 
 **My own test harness had a false-independence bug.** The first
-version seeded the warehouse snapshot directly from finnhub's
+version seeded the warehouse snapshot directly from Finnhub's
 live price. The two then agreed to the penny, and the agent
 marked the result CONFIRMED on what it believed were two
 independent sources. It was one observation counted twice.
@@ -196,7 +187,7 @@ the demo. The snapshot is now seeded with a small offset and
 the fix is visible in `refresh_warehouse`.
 
 **Agreement from a stale source is not evidence.** In scenario
-1 two sources agreed to 0.024%, comfortably inside tolerance.
+1, two sources agreed to 0.024%, comfortably inside tolerance.
 The agent declined to treat that as corroboration because one
 of them was two hours old on a market that never closes, and
 spent a scarce query to get a genuinely fresh second opinion
@@ -207,16 +198,14 @@ nothing.
 version of scenario 2 put the injected conflict on Alpha
 Vantage. The agent never queried it, having already obtained
 two agreeing sources, and correctly noted it had no reason to
-spend the quota. Good behaviour, useless test. The conflict was
-moved into a source the agent reaches for by default.
+spend the quota. The behaviour was right but the test was useless, so I moved the conflict into a source the agent reaches for by default.
 
 ## Known limitations
 
 **No exchange holiday calendar.** Market hours are computed
 from weekday and time of day only. On Christmas Day 2026, a
-Friday, `market_is_open("AAPL")` returns `True` and the agent
-would penalise a source for staleness that was in fact correct.
-Verified, not suspected.
+Friday, `market_is_open("AAPL")` returns `True`, so the agent
+would penalise a source for staleness when it was in fact correct.I checked this rather than assuming it. 
 
 **Equity timestamps are day-granular.** Alpha Vantage reports
 only the trading day for equities, so 20:00 UTC is assumed as
@@ -243,9 +232,7 @@ real venues would let the agent reason about a minority report
 rather than a stalemate.
 
 **Trust that persists and decays.** Scores should survive
-across runs, so a source with a bad week starts from where it
-left off, and recover slowly with good behaviour rather than
-being condemned permanently by one outage.
+between runs, so that a source which behaved badly yesterday does not start with a clean slate. They should also recover slowly when a source behaves well, rather than leaving it condemned permanently by one outage.
 
 **A proper exchange calendar.** The holiday gap above is the
 clearest correctness bug in the system and it is a solved
@@ -265,3 +252,10 @@ approximately.
 **Replay from recorded fixtures.** Capturing real responses and
 replaying them would make runs fully deterministic and let the
 same decision path be regression tested rather than observed.
+
+**Reserve the agent for the hard cases.** Every decision step
+costs a model call, and most reconciliations are unambiguous:
+every source responds, every source agrees, nothing needs
+deciding. A deterministic path should handle those, with the
+agent invoked only on conflict, outage or staleness. Judgement
+where judgement is needed and arithmetic everywhere else.
