@@ -25,7 +25,7 @@ the agent gave at the time.
 
 ## Quick start
 
-git clone < https://github.com/CarolineItiola/Price-Feed-Reconciliation-Agent->
+git clone git clone https://github.com/CarolineItiola/Price-Feed-Reconciliation-Agent
 cd Price-Feed-Reconciliation-Agent
 pip install -r requirements.txt
 
