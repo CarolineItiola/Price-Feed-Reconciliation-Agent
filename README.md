@@ -1,10 +1,15 @@
 # Multi-Source Price Feed Reconciliation Agent
 
-Several services can tell you the price of the same asset, and
-they do not always agree. Some go offline while some keep
-answering but hand back a price from hours ago without saying
-so. The easy answers are to average the prices or to fall back to the last value you trusted and both will produce a number that looks fine and is still wrong.
-This project builds an agent that takes neither shortcut. It reasons about which feed to believe, and when it cannot justify a price, it says so and escalates rather than guessing.
+When you start learning how different asset classes behave, you
+find quite quickly that an asset does not have one price. It
+has as many prices as there are services quoting it, and those
+prices do not always agree.
+Ask two services what Bitcoin is worth at the same moment and you get two different answers,because they are quoting different markets. Ask about a stock at the weekend and both give you Friday's close, which is correct but easy to mistake for a live price.
+The obvious fixes are to average the two prices or keep the last price you trusted, and neither is safe. Averaging produces a number that no market traded at, and keeping the last value hides the fact that you no longer know.
+
+This project builds an agent that takes neither shortcut. It
+reasons about which feed to believe, and when it cannot justify
+a price, it says so and escalates rather than guessing.
 
 ## What it does
 
